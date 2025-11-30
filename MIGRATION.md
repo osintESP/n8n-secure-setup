@@ -2,6 +2,11 @@
 
 Si quieres mover tu instancia de n8n a otra computadora manteniendo tus datos, sigue estos pasos. `git clone` solo descarga la estructura, **no tus datos ni tus contraseñas**.
 
+> [!TIP]
+> **Si usaste el script de backup automático (`backup.sh`)**:
+> Solo necesitas descargar el último archivo `.tar.gz` de tu Google Drive y descomprimirlo. Ese archivo ya contiene **todo** lo que necesitas (`.env`, `n8n_full_backup.sql`, etc.).
+> Salta directamente al paso **2. En la PC Nueva**.
+
 ## 1. En la PC Antigua (Origen)
 
 Necesitas guardar dos cosas importantes que **no** están en GitHub:
@@ -34,7 +39,8 @@ Necesitas guardar dos cosas importantes que **no** están en GitHub:
     ```
 
 2.  **Restaurar configuración**:
-    *   Pega tu archivo `.env` guardado en esta carpeta.
+    *   Si bajaste el backup de Drive: `tar -xzf n8n_backup_*.tar.gz`
+    *   Pega tu archivo `.env` en esta carpeta.
 
 3.  **Iniciar servicios**:
     ```bash
