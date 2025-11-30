@@ -1,0 +1,241 @@
+{
+    "name": "Triada de Seguridad: QRadar + Qualys + Vision One",
+    "nodes": [
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "minutes",
+                            "minutes": 15
+                        }
+                    ]
+                }
+            },
+            "id": "schedule-trigger",
+            "name": "Cada 15 Minutos",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1.1,
+            "position": [
+                460,
+                240
+            ]
+        },
+        {
+            "parameters": {
+                "url": "https://YOUR_QRADAR_IP/api/siem/offenses",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "headerAuth",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "filter",
+                            "value": "status=\"OPEN\""
+                        },
+                        {
+                            "name": "sort",
+                            "value": "-start_time"
+                        }
+                    ]
+                },
+                "options": {
+                    "allowUnauthorizedCerts": true
+                }
+            },
+            "id": "qradar-fetch",
+            "name": "QRadar: Get Offenses",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                680,
+                240
+            ],
+            "notesInFlow": true,
+            "notes": "Trae ofensas abiertas"
+        },
+        {
+            "parameters": {
+                "url": "https://qualysapi.qg2.apps.qualys.com/api/2.0/fo/asset/host/vm/detection/",
+                "authentication": "predefinedCredentialType",
+                "nodeCredentialType": "qualysApi",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "action",
+                            "value": "list"
+                        },
+                        {
+                            "name": "ips",
+                            "value": "={{ $json.offense_source_ip }}"
+                        },
+                        {
+                            "name": "status",
+                            "value": "Active,Re-Opened,New"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "qualys-check",
+            "name": "Qualys: Check Vulns",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                1120,
+                140
+            ],
+            "notesInFlow": true,
+            "notes": "Busca CVEs en la IP atacada"
+        },
+        {
+            "parameters": {
+                "url": "https://api.xdr.trendmicro.com/v3.0/workbench/alerts",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "startDateTime",
+                            "value": "={{ $json.start_time_iso }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "tvo-check",
+            "name": "TVO: Check Alerts",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                1120,
+                360
+            ],
+            "notesInFlow": true,
+            "notes": "Busca incidentes en Vision One"
+        },
+        {
+            "parameters": {
+                "options": {}
+            },
+            "id": "xml-to-json",
+            "name": "XML to JSON",
+            "type": "n8n-nodes-base.xml",
+            "typeVersion": 1,
+            "position": [
+                1320,
+                140
+            ]
+        },
+        {
+            "parameters": {
+                "mode": "combine",
+                "combinationMode": "mergeByPosition",
+                "options": {}
+            },
+            "id": "merge-data",
+            "name": "Consolidar Datos",
+            "type": "n8n-nodes-base.merge",
+            "typeVersion": 2.1,
+            "position": [
+                1560,
+                240
+            ],
+            "notesInFlow": true,
+            "notes": "Une QRadar + Qualys + TVO"
+        },
+        {
+            "parameters": {
+                "jsCode": "// Simulación de datos de QRadar para pruebas\nreturn [\n  {\n    \"id\": 105,\n    \"description\": \"Traffic anomaly detected\",\n    \"offense_source_ip\": \"192.168.1.50\",\n    \"start_time\": 1698754000000,\n    \"magnitude\": 8\n  }\n];"
+            },
+            "id": "mock-data",
+            "name": "Mock Data (Eliminar)",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                900,
+                240
+            ],
+            "notesInFlow": true,
+            "notes": "Simula respuesta de QRadar"
+        }
+    ],
+    "connections": {
+        "Cada 15 Minutos": {
+            "main": [
+                [
+                    {
+                        "node": "QRadar: Get Offenses",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "QRadar: Get Offenses": {
+            "main": [
+                [
+                    {
+                        "node": "Mock Data (Eliminar)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Mock Data (Eliminar)": {
+            "main": [
+                [
+                    {
+                        "node": "Qualys: Check Vulns",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "TVO: Check Alerts",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Qualys: Check Vulns": {
+            "main": [
+                [
+                    {
+                        "node": "XML to JSON",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "XML to JSON": {
+            "main": [
+                [
+                    {
+                        "node": "Consolidar Datos",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "TVO: Check Alerts": {
+            "main": [
+                [
+                    {
+                        "node": "Consolidar Datos",
+                        "type": "main",
+                        "index": 1
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {},
+    "staticData": null,
+    "meta": null
+}

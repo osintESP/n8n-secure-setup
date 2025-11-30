@@ -1,0 +1,14 @@
+# Environments
+.env
+
+# N8N Data
+n8n_data/
+postgres_data/
+n8n_config_backup
+
+# Credentials
+credentials.json
+workflows.json
+
+# Logs
+*.log
