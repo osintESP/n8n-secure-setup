@@ -56,4 +56,27 @@ Necesitas guardar dos cosas importantes que **no** están en GitHub:
     sudo docker exec n8n-n8n-1 n8n import:credentials --input=/home/node/.n8n/credentials.json
     ```
 
+## Opción B: Migración Completa (Base de Datos + Historial)
+
+Si quieres conservar **todo** (historial de ejecuciones, usuarios, variables, etiquetas), es mejor hacer un backup de la base de datos PostgreSQL.
+
+### 1. En la PC Antigua (Origen)
+```bash
+# Crear un backup completo de la base de datos
+sudo docker exec n8n-postgres-1 pg_dump -U n8n n8n > n8n_full_backup.sql
+```
+Guarda el archivo `n8n_full_backup.sql` junto con tu `.env`.
+
+### 2. En la PC Nueva (Destino)
+Después de iniciar los servicios (`docker compose up -d`), restaura la base de datos:
+
+```bash
+# Copiar el backup al contenedor
+sudo docker cp n8n_full_backup.sql n8n-postgres-1:/tmp/n8n_full_backup.sql
+
+# Restaurar la base de datos (borrando la existente primero)
+sudo docker exec n8n-postgres-1 psql -U n8n -d n8n -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+sudo docker exec n8n-postgres-1 psql -U n8n -d n8n -f /tmp/n8n_full_backup.sql
+```
+
 ¡Listo! Tu n8n debería estar funcionando con todos tus datos en la nueva PC.
